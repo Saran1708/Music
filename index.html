@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>AI Music Generator</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+        }
+        #audio-preview {
+            margin: 20px 0;
+        }
+        #play-btn {
+            padding: 10px 20px;
+            background-color: #4CAF50;
+            color: white;
+            border: none;
+            cursor: pointer;
+        }
+        #play-btn:hover {
+            background-color: #45a049;
+        }
+        #output {
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>AI Music Generator</h1>
+
+    <form id="audio-form" enctype="multipart/form-data">
+        <label for="audio-file">Upload Audio:</label>
+        <input type="file" id="audio-file" name="audio-file" accept="audio/*" required><br><br>
+
+        <label for="prompt">Enter Prompt for Music Style:</label>
+        <input type="text" id="prompt" name="prompt" placeholder="e.g. 'Vintage love song'" required><br><br>
+
+        <button type="submit" id="generate-btn">Generate Music</button>
+    </form>
+
+    <div id="audio-preview">
+        <audio id="audio-player" controls></audio>
+        <button id="play-btn">Play/Pause Preview</button>
+    </div>
+
+    <div id="output">
+        <p>Generated Audio:</p>
+        <button id="download-btn" style="display:none;">Download AI-Generated Song</button>
+    </div>
+
+    <script>
+        document.getElementById("audio-file").addEventListener("change", function(event) {
+            const file = event.target.files[0];
+            const player = document.getElementById("audio-player");
+            const playButton = document.getElementById("play-btn");
+
+            if (file) {
+                player.src = URL.createObjectURL(file);
+            }
+
+            playButton.addEventListener("click", function() {
+                if (player.paused) {
+                    player.play();
+                } else {
+                    player.pause();
+                }
+            });
+        });
+
+        document.getElementById("audio-form").addEventListener("submit", function(event) {
+            event.preventDefault();
+
+            const formData = new FormData(this);  // Capture the form data
+            const prompt = document.getElementById("prompt").value;
+            formData.append("prompt", prompt);  // Add prompt to the form data
+
+            const generateBtn = document.getElementById("generate-btn");
+            const downloadBtn = document.getElementById("download-btn");
+
+            generateBtn.disabled = true;  // Disable the button while processing
+
+            // Send the form data to the Flask backend via fetch
+            fetch("/upload", {
+                method: "POST",
+                body: formData
+            })
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Network response was not ok');
+                }
+                return response.blob();  // Return the audio blob
+            })
+            .then(blob => {
+                const audioUrl = URL.createObjectURL(blob);  // Create a URL for the audio blob
+                downloadBtn.style.display = 'inline-block';
+                downloadBtn.href = audioUrl;
+                downloadBtn.download = "generated_song.mp3";  // Set the download name
+                downloadBtn.textContent = "Download AI-Generated Song";
+                generateBtn.disabled = false;  // Re-enable the button
+            })
+            .catch(error => {
+                console.error("Error:", error);
+                generateBtn.disabled = false;  // Re-enable the button on error
+            });
+        });
+    </script>
+
+</body>
+</html>
